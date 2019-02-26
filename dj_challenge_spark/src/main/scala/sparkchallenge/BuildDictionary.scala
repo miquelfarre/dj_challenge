@@ -27,7 +27,7 @@ object BuildDictionary{
       .repartition(1)
       .saveAsTextFile(outputPath)
 
-    sc.stop()
+    sc.stop
 
   }
 }

@@ -37,14 +37,14 @@ object BuildInvertedIndex {
         })
     })
 
-    transform(fileNameAndWords, dictionaryWordWordId, invertedIndexPath)
+    invertedIndex(fileNameAndWords, dictionaryWordWordId)
+      .saveAsTextFile(invertedIndexPath)
+
     sc.stop
   }
 
-
-  def transform(fileNameAndWords: Seq[(String, RDD[String])],
-                dictionary: RDD[(String, String)],
-                invertedIndexPath: String): Unit = {
+  def invertedIndex(fileNameAndWords: Seq[(String, RDD[String])],
+                    dictionary: RDD[(String, String)]): RDD[String] = {
 
     val wordDocIdPairs = fileNameAndWords
       .map {
@@ -68,6 +68,5 @@ object BuildInvertedIndex {
       .map(x => x._1 + "," + "(" + x._2.mkString(",") + ")")
       //only one output file
       .repartition(1)
-      .saveAsTextFile(invertedIndexPath)
   }
 }
