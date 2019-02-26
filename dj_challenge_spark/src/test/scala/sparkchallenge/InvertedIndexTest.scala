@@ -1,7 +1,8 @@
-import org.apache.spark.{SparkConf, SparkContext}
+package sparkchallenge
+
 import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.FunSuite
-import sparkchallenge.BuildInvertedIndex
 
 class InvertedIndexTest extends FunSuite {
 
@@ -24,7 +25,7 @@ class InvertedIndexTest extends FunSuite {
     val fileNameAndWords: Seq[(String, RDD[String])] =
       Seq(("1", sc.parallelize(words)), ("2", sc.parallelize(words2)))
 
-    val invertedIndexRDD = BuildInvertedIndex.buildInvertedIndex(fileNameAndWords, dictionary)
+    val invertedIndexRDD = BuildInvertedIndex.buildInvertedIndex(fileNameAndWords, dictionary, 1)
     assert(invertedIndexRDD.count === result.count)
     assert(invertedIndexRDD.first() === "(1,2)")
 

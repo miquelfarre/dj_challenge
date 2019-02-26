@@ -14,12 +14,13 @@ object BuildInvertedIndex {
     val datasetPath = args(0)
     val dictionaryPath = args(1)
     val outputPath = args(2)
+    val NUM_SHARDS = 1
 
     val conf = new SparkConf().setAppName("Build Inverted Index").setMaster("local[*]")
     val sc = new SparkContext(conf)
     val dataset = readDataset(sc, datasetPath)
     val dictionary = readDictionary(sc, dictionaryPath)
-    val invertedIndex = buildInvertedIndex(dataset, dictionary)
+    val invertedIndex = buildInvertedIndex(dataset, dictionary, NUM_SHARDS)
     write(invertedIndex, outputPath)
 
     sc.stop
@@ -29,7 +30,7 @@ object BuildInvertedIndex {
     //all files in dataset with path
     val files = FileSystem.get(sc.hadoopConfiguration)
       .listStatus(new Path(datasetPath))
-    
+
     //all filename and word pairs in dataset
     files.map(filename => {
       (FILE_INDEX_REGEX_PATTERN.findFirstIn(filename.getPath.toString).get,
@@ -48,7 +49,8 @@ object BuildInvertedIndex {
   }
 
   def buildInvertedIndex(fileNameAndWords: Seq[(String, RDD[String])],
-                         dictionary: RDD[(String, String)]): RDD[String] = {
+                         dictionary: RDD[(String, String)],
+                         numberOfShards: Int): RDD[String] = {
 
     val wordDocIdPairs = fileNameAndWords
       .map {
@@ -71,7 +73,7 @@ object BuildInvertedIndex {
       .sortByKey(ascending = true)
       .map(x => x._1 + "," + "(" + x._2.mkString(",") + ")")
       //only one output file
-      .repartition(1)
+      .repartition(numberOfShards)
   }
 
   private def write(invertedIndex: RDD[String], outputPath: String) = {

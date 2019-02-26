@@ -9,6 +9,7 @@ object BuildDictionary {
   def main(cmdlineArgs: Array[String]): Unit = {
 
     val (sc, args) = ContextAndArgs(cmdlineArgs)
+
     val datasetPath = args("input")
     val outputPath = args("output")
 
@@ -20,7 +21,6 @@ object BuildDictionary {
 
     val result = sc.close().waitUntilFinish()
     //result.allCounters...
-
   }
 
   def md5HashString(s: String): String = {

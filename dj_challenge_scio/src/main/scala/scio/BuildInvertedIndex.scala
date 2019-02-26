@@ -16,9 +16,11 @@ object BuildInvertedIndex {
   def main(cmdlineArgs: Array[String]): Unit = {
 
     val (sc, args) = ContextAndArgs(cmdlineArgs)
+
     val datasetPath = args("input")
     val dictionaryPath = args("dictionary")
     val outputPath = args("output")
+
     val NUM_SHARDS = 1
 
     val dataset = readDataset(sc, datasetPath)
