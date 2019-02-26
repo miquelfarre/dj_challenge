@@ -21,8 +21,6 @@ object BuildInvertedIndex {
     val dictionaryPath = args("dictionary")
     val outputPath = args("output")
 
-    FileSystems.setDefaultPipelineOptions(sc.options)
-
     val uris = FileSystems
       .`match`(datasetPath)
       .metadata()
@@ -39,7 +37,8 @@ object BuildInvertedIndex {
           .map((FILE_INDEX_REGEX_PATTERN.findFirstIn(uri).get, _))
       }
 
-    generateInvertedIndex(fileNameAndLines, sc.textFile(dictionaryPath), outputPath)
+    invertedIndex(fileNameAndLines, sc.textFile(dictionaryPath))
+      .saveAsTextFile(outputPath, 1)
 
     val result = sc.close().waitUntilFinish()
     //result.allCounters...
@@ -51,9 +50,8 @@ object BuildInvertedIndex {
     scala.io.Source.fromInputStream(inputStream)(decoder)
   }
 
-  private def generateInvertedIndex(fileNameAndLines: SCollection[(String, String)],
-                                    dictionaryFile: SCollection[String],
-                                    outputFile: String): Unit = {
+  def invertedIndex(fileNameAndLines: SCollection[(String, String)],
+                    dictionaryFile: SCollection[String]): SCollection[String] = {
 
     val fileNameAndWords = fileNameAndLines.flatMap {
       case (fileName, line) =>
@@ -71,6 +69,5 @@ object BuildInvertedIndex {
     }
       .aggregateByKey(SortedSet[String]())(_ + _, _ ++ _)
       .map(x => x._1 + "," + "(" + x._2.mkString(",") + ")")
-      .saveAsTextFile(outputFile, 1)
   }
 }
