@@ -13,44 +13,48 @@ object BuildInvertedIndex {
 
     val datasetPath = args(0)
     val dictionaryPath = args(1)
-    val invertedIndexPath = args(2)
+    val outputPath = args(2)
 
     val conf = new SparkConf().setAppName("Build Inverted Index").setMaster("local[*]")
     val sc = new SparkContext(conf)
+    val dataset = readDataset(sc, datasetPath)
+    val dictionary = readDictionary(sc, dictionaryPath)
+    val invertedIndex = buildInvertedIndex(dataset, dictionary)
+    write(invertedIndex, outputPath)
 
-    //read dictionary
-    val dictionaryWordWordId = sc.textFile(dictionaryPath).map {
-      case (line) => line.split(",") match {
-        case Array(word, wordId) => (word, wordId)
-      }
-    }
+    sc.stop
+  }
 
+  private def readDataset(sc: SparkContext, datasetPath: String) = {
     //all files in dataset with path
     val files = FileSystem.get(sc.hadoopConfiguration)
       .listStatus(new Path(datasetPath))
-
+    
     //all filename and word pairs in dataset
-    val fileNameAndWords = files.map(filename => {
+    files.map(filename => {
       (FILE_INDEX_REGEX_PATTERN.findFirstIn(filename.getPath.toString).get,
         sc.textFile(filename.getPath.toString).map(_.toLowerCase).flatMap {
           case (line) => line.split("\\W+").filter(_.nonEmpty)
         })
     })
-
-    invertedIndex(fileNameAndWords, dictionaryWordWordId)
-      .saveAsTextFile(invertedIndexPath)
-
-    sc.stop
   }
 
-  def invertedIndex(fileNameAndWords: Seq[(String, RDD[String])],
-                    dictionary: RDD[(String, String)]): RDD[String] = {
+  private def readDictionary(sc: SparkContext, dictionaryPath: String) = {
+    sc.textFile(dictionaryPath).map {
+      case (line) => line.split(",") match {
+        case Array(word, wordId) => (word, wordId)
+      }
+    }
+  }
+
+  def buildInvertedIndex(fileNameAndWords: Seq[(String, RDD[String])],
+                         dictionary: RDD[(String, String)]): RDD[String] = {
 
     val wordDocIdPairs = fileNameAndWords
       .map {
         case (doc, words) => words
-        .flatMap(_.split("\\W+").filter(_.nonEmpty))
-        .map(word => (word.toLowerCase, doc))
+          .flatMap(_.split("\\W+").filter(_.nonEmpty))
+          .map(word => (word.toLowerCase, doc))
       }
       .reduce(_ ++ _)
 
@@ -68,5 +72,9 @@ object BuildInvertedIndex {
       .map(x => x._1 + "," + "(" + x._2.mkString(",") + ")")
       //only one output file
       .repartition(1)
+  }
+
+  private def write(invertedIndex: RDD[String], outputPath: String) = {
+    invertedIndex.saveAsTextFile(outputPath)
   }
 }

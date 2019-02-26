@@ -24,7 +24,7 @@ class InvertedIndexTest extends FunSuite {
     val fileNameAndWords: Seq[(String, RDD[String])] =
       Seq(("1", sc.parallelize(words)), ("2", sc.parallelize(words2)))
 
-    val invertedIndexRDD = BuildInvertedIndex.invertedIndex(fileNameAndWords, dictionary)
+    val invertedIndexRDD = BuildInvertedIndex.buildInvertedIndex(fileNameAndWords, dictionary)
     assert(invertedIndexRDD.count === result.count)
     assert(invertedIndexRDD.first() === "(1,2)")
 
