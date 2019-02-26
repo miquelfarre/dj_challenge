@@ -1,9 +1,11 @@
 package scio
 
 import java.nio.channels.Channels
+
 import com.spotify.scio._
 import com.spotify.scio.values.SCollection
 import org.apache.beam.sdk.io.FileSystems
+
 import scala.collection.JavaConverters._
 import scala.collection.SortedSet
 
@@ -17,9 +19,12 @@ object BuildInvertedIndex {
     val datasetPath = args("input")
     val dictionaryPath = args("dictionary")
     val outputPath = args("output")
+    val NUM_SHARDS = 1
 
-    invertedIndex(readDataset(sc, datasetPath), readDictionary(sc, dictionaryPath))
-      .saveAsTextFile(outputPath, 1)
+    val dataset = readDataset(sc, datasetPath)
+    val dictionary = readDictionary(sc, dictionaryPath)
+    val invertedIndex = buildInvertedIndex(dataset, dictionary)
+    write(outputPath, NUM_SHARDS, invertedIndex)
     val result = sc.close().waitUntilFinish()
     //result.allCounters...
   }
@@ -50,7 +55,7 @@ object BuildInvertedIndex {
     }
   }
 
-  private def invertedIndex(fileNameAndLines: SCollection[(String, String)],
+  def buildInvertedIndex(fileNameAndLines: SCollection[(String, String)],
                             dictionaryFile: SCollection[(String, String)]): SCollection[String] = {
 
     val fileNameAndWords = fileNameAndLines.flatMap {
@@ -63,5 +68,10 @@ object BuildInvertedIndex {
     }
       .aggregateByKey(SortedSet[String]())(_ + _, _ ++ _)
       .map(x => x._1 + "," + "(" + x._2.mkString(",") + ")")
+  }
+
+  private def write(outputPath: String, NUM_SHARDS: Int, invertedIndex: SCollection[String]) = {
+    invertedIndex
+      .saveAsTextFile(outputPath, NUM_SHARDS)
   }
 }

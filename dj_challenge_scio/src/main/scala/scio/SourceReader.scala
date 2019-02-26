@@ -10,5 +10,4 @@ object SourceReader {
     decoder.onMalformedInput(CodingErrorAction.IGNORE)
     scala.io.Source.fromInputStream(inputStream)(decoder)
   }
-
 }
